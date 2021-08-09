@@ -12,13 +12,6 @@ task-config: &task-config
 #
 resources:
 
-- name: ping-container
-  type: registry-image
-  icon: docker
-  source:
-    repository: busybox
-    tag: latest
-
 - name: concourse-tanzu-wcp-console
   type: registry-image
   icon: docker
@@ -42,17 +35,11 @@ jobs:
 - name: ping-api-server
   serial: true
   plan:
-  - get: ping-container
   - get: concourse-tanzu-wcp-console
   - get: workload-cluster-config
   - task: ping-api-server
     config:
-      platform: linux
-      image_resource:
-        type: registry-image
-        source:
-          repository: busybox
-          tag: latest
+      << : *task-config
       run:
         path: ping
         args: ["-c","5","((api_server))"]
@@ -60,7 +47,6 @@ jobs:
 - name: api-server-authentication
   serial: true
   plan:
-  - get: ping-container
   - get: concourse-tanzu-wcp-console
   - get: workload-cluster-config
     passed: [ping-api-server]
@@ -79,7 +65,6 @@ jobs:
 - name: workload-clusters-operation
   serial: true
   plan: 
-  - get: ping-container
   - get: concourse-tanzu-wcp-console
   - get: workload-cluster-config
     passed: [api-server-authentication]
@@ -112,12 +97,14 @@ jobs:
                 kubectl delete tkc/"$deleteing" -n ns1
                 if [ -s tanzu-wcp-clusters/clusters.yml ]; then
                   kubectl apply -f tanzu-wcp-clusters/clusters.yml
+                  sleep 30s
                 fi
               }
               done < delete.list
             else
               if [ -s tanzu-wcp-clusters/clusters.yml ]; then
                 kubectl apply -f tanzu-wcp-clusters/clusters.yml
+                sleep 30s
               fi
             fi
             kubectl get tkc -A

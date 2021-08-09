@@ -1,5 +1,5 @@
 ---
-api_server: "enter your api server here"
-kubectl_vsphere_password: "enter your password here"
-kubectl_vsphere_username: "enter your login username here"
+api_server: "enter your k8s api server"
+kubectl_vsphere_username: "enter your user name"
+kubectl_vsphere_password: "enter your password"
 
