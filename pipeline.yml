@@ -1,12 +1,17 @@
+---
+#
+# task define
+#
 task-config: &task-config
+  inputs:
+    - name: workload-cluster-config
   platform: linux
   image_resource:
     type: registry-image
     source:
-      repository: powellcrack/concourse-tanzu-wcp-console
-      tag: latest
-    inputs:
-      - name: workload-cluster-config    
+      repository: ((wcp-console-image))
+      tag: ((wcp-console-image-tag))
+
 #
 # Resources
 #
@@ -23,12 +28,12 @@ resources:
   type: git
   icon: github
   source:
-    uri:  https://github.com/bullblock/tanzu-wcp-clusters.git 
-    branch: main
+    uri:  ((workload-cluster-config-uri))
+    branch: ((workload-cluster-config-uri-branch))
   check_every: 1m
 
 #
-#Jobs
+# Jobs
 #
 jobs:
 
@@ -37,6 +42,7 @@ jobs:
   plan:
   - get: concourse-tanzu-wcp-console
   - get: workload-cluster-config
+    trigger: true
   - task: ping-api-server
     config:
       << : *task-config
@@ -60,7 +66,7 @@ jobs:
           - -c
           - |
             export KUBECTL_VSPHERE_PASSWORD=((kubectl_vsphere_password))
-            kubectl vsphere login --vsphere-username=((kubectl_vsphere_username)) --server=https://((api_server)) --insecure-skip-tls-verify
+            kubectl vsphere login --vsphere-username=((kubectl_vsphere_username)) --server=https://((api_server)) --tanzu-kubernetes-cluster-namespace=((wcp-namespace)) --insecure-skip-tls-verify
         
 - name: workload-clusters-operation
   serial: true
@@ -77,12 +83,11 @@ jobs:
         args:
           - -c
           - |
-            git clone https://github.com/bullblock/tanzu-wcp-clusters.git
             export KUBECTL_VSPHERE_PASSWORD=((kubectl_vsphere_password))
-            kubectl vsphere login --vsphere-username=((kubectl_vsphere_username)) --server=https://((api_server)) --insecure-skip-tls-verify
-            kubectl config use-context ((api_server))
-            kubectl get tkc -A | awk '{print $2}' | awk '{if(NR>1)print}' |sort - > existing
-            grep -i name: tanzu-wcp-clusters/clusters.yml | awk '{print $2}' | sort - > applying
+            kubectl vsphere login --vsphere-username=((kubectl_vsphere_username)) --server=https://((api_server)) --tanzu-kubernetes-cluster-namespace=((wcp-namespace)) --insecure-skip-tls-verify
+            kubectl config use-context ((wcp-namespace))
+            kubectl get tkc -n ((wcp-namespace)) | awk '{print $1}' | awk '{if(NR>1)print}' |sort - > existing
+            grep -i name: workload-cluster-config/((wcp-namespace)) | awk '{print $2}' | sort - > applying
             while read existing; do
             {
               item=`grep -i "$existing" applying`
@@ -94,17 +99,34 @@ jobs:
             if [ -s delete.list ]; then
               while read deleteing; do
               {
-                kubectl delete tkc/"$deleteing" -n ns1
-                if [ -s tanzu-wcp-clusters/clusters.yml ]; then
-                  kubectl apply -f tanzu-wcp-clusters/clusters.yml
-                  sleep 30s
+                kubectl delete tkc/"$deleteing" -n ((wcp-namespace))
+                if [ -s workload-cluster-config/((wcp-namespace)) ]; then
+                  kubectl apply -f workload-cluster-config/((wcp-namespace))
                 fi
               }
               done < delete.list
             else
-              if [ -s tanzu-wcp-clusters/clusters.yml ]; then
-                kubectl apply -f tanzu-wcp-clusters/clusters.yml
-                sleep 30s
+              if [ -s workload-cluster-config/((wcp-namespace)) ]; then
+                kubectl apply -f workload-cluster-config/((wcp-namespace))
               fi
             fi
-            kubectl get tkc -A
+
+- name: workload-clusters-verify
+  serial: true
+  plan:
+  - get: concourse-tanzu-wcp-console
+  - get: workload-cluster-config
+    passed: [workload-clusters-operation]
+    trigger: true
+  - task: workload-clusters-verify
+    config:
+      << : *task-config
+      run:
+        path: /bin/bash
+        args:
+          - -c
+          - |
+            export KUBECTL_VSPHERE_PASSWORD=((kubectl_vsphere_password))
+            kubectl vsphere login --vsphere-username=((kubectl_vsphere_username)) --server=https://((api_server)) --tanzu-kubernetes-cluster-namespace=((wcp-namespace)) --insecure-skip-tls-verify
+            kubectl config use-context ((wcp-namespace))
+            kubectl get tkc -n ((wcp-namespace))

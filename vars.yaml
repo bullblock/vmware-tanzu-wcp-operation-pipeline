@@ -1,5 +1,9 @@
 ---
-api_server: "enter your k8s api server"
-kubectl_vsphere_username: "enter your user name"
-kubectl_vsphere_password: "enter your password"
-
+api_server: api.wcp.wdc.lab
+kubectl_vsphere_username: administrator@vsphere.local
+kubectl_vsphere_password: Admin!23Admin
+wcp-console-image: powellcrack/concourse-tanzu-wcp-console
+wcp-console-image-tag: latest
+workload-cluster-config-uri: https://github.com/bullblock/tanzu-wcp-clusters.git
+workload-cluster-config-uri-branch: main
+wcp-namespace: production
