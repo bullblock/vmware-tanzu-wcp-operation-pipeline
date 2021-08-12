@@ -1,9 +1,9 @@
 ---
 api_server: #WCP_API_SERVER_URI#
+wcp-namespace: #NAMESPACE#
 kubectl_vsphere_username: #NS_USERNAME#
 kubectl_vsphere_password: #NS_USERNAME_PASSWORD#
 wcp-console-image: powellcrack/concourse-tanzu-wcp-console
 wcp-console-image-tag: latest
 workload-cluster-config-uri: https://github.com/bullblock/tanzu-wcp-clusters-development.git
 workload-cluster-config-uri-branch: main
-wcp-namespace: #NAMESPACE#
