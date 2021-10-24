@@ -1,5 +1,5 @@
 ---
-api_server: 172.16.0.50
+api_server: api.wcp.wdc.lab
 wcp-namespace: staging
 kubectl_vsphere_username: administrator@vsphere.local
 kubectl_vsphere_password: Admin!23Admin
